@@ -1,0 +1,85 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# C extensions
+*.obj
+*.o
+*.lib
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Robotics & Demonstration Datasets (Large HDF5 files)
+*.hdf5
+*.h5
+datasets/
+data/
+raw_demos/
+
+# Deep Learning checkpoints & models
+*.pt
+*.pth
+*.ckpt
+*.onnx
+models/
+checkpoints/
+trained_models/
+
+# Experiment outputs, logs, telemetry
+logs/
+runs/
+wandb/
+tensorboard/
+*.log
+*.tfevents.*
+
+# Video renders & evaluation recordings
+*.mp4
+*.avi
+*.mov
+*.webm
+videos/
+recordings/
+renders/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# IDE & Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
