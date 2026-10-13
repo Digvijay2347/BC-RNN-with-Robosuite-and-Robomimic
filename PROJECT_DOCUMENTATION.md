@@ -1,17 +1,15 @@
 # BC-RNN with Robosuite and Robomimic: Complete Project Guide & Runbook
 
-**Repository**: [github.com/Digvijay2347/BC-RNN-with-Robosuite-and-Robomimic](https://github.com/Digvijay2347/BC-RNN-with-Robosuite-and-Robomimic)  
-**Author**: Digvijay Singh  
-**Workspace**: `c:\Users\Digvijay singh\OneDrive\Desktop\Motion\prod1`  
 **Task**: Contact-Rich Peg/Nut Assembly Manipulation (`NutAssemblySquare`)  
-**Core Question**: Benchmarking Behavioral Cloning (BC) vs. Recurrent Behavioral Cloning (BC-RNN) on CPU with & without 6-axis End-Effector Force/Torque (F/T) History.
+**Core Question**: Benchmarking Behavioral Cloning (BC) vs. Recurrent Behavioral Cloning (BC-RNN) on CPU with & without 6-axis End-Effector Force/Torque (F/T) History.  
+**Framework**: `robosuite` (MuJoCo Physics) + `robomimic` (PyTorch Imitation Learning)
 
 ---
 
 ## 📑 Table of Contents
 1. [Project Overview & Scientific Motivation](#1-project-overview--scientific-motivation)
 2. [Robot Embodiment Analysis: Franka Panda vs. UR10e / UR5e](#2-robot-embodiment-analysis-franka-panda-vs-ur10e--ur5e)
-3. [System Hardware Profile](#3-system-hardware-profile)
+3. [Hardware & System Requirements](#3-hardware--system-requirements)
 4. [Environment Setup & Windows Compatibility Fixes](#4-environment-setup--windows-compatibility-fixes)
 5. [Git Practices & Repository Structure](#5-git-practices--repository-structure)
 6. [Complete Command Reference (Everything Run So Far)](#6-complete-command-reference-everything-run-so-far)
@@ -55,17 +53,17 @@ Prior to execution, an in-depth analysis of ready-made demonstration datasets an
 
 ---
 
-## 3. System Hardware Profile
+## 3. Hardware & System Requirements
 
-The current host system detected and used for this project:
+This project is fully optimized for efficient execution on standard commodity hardware:
 
-| Hardware Component | Detected Specification | Project Suitability |
+| Resource | Recommended Specification | Project Footprint / Usage |
 | :--- | :--- | :---: |
-| **Processor (CPU)** | **Intel Core Ultra 7 256V** (8 cores / 8 threads, up to 4.8 GHz) | 🚀 High-IPC Lunar Lake, perfect for single-thread MuJoCo physics |
-| **System Memory (RAM)** | **15.66 GB Total** (~2.3 GB available at idle) | ✅ Peak project RAM usage is **~420 MB – 570 MB** (<25% of available) |
-| **Disk Storage** | **508 GB Free** on `C:` (out of 952 GB) | ✅ Entire project footprint is < 2 GB |
-| **Graphics (GPU)** | **Intel Arc 140V GPU (8 GB)** | ✅ Available, though CPU backend is prioritized for low-dim vector speed |
-| **Operating System** | **Microsoft Windows 11 Home (64-bit)** | ✅ Fully configured with PowerShell |
+| **Processor (CPU)** | Modern x86_64 or ARM CPU (4+ cores recommended) | High-throughput single-step MuJoCo physics and fast PyTorch CPU vector tensors |
+| **System Memory (RAM)** | 8 GB RAM or higher | Extremely lightweight: Peak memory consumption during training is **~420 MB – 570 MB** |
+| **Disk Storage** | 2.5 GB available storage | ~55 MB dataset + ~1.5 GB virtual environment + checkpoints and logs |
+| **GPU / Acceleration** | None required (CPU execution is default) | PyTorch CPU wheels eliminate CUDA overhead and run all 50 epochs in ~12 min |
+| **Operating System** | Windows 10/11, Linux (Ubuntu 20.04+), macOS | Cross-platform compatible; includes tested Windows WGL & DLL bindings |
 
 ---
 
@@ -74,7 +72,7 @@ The current host system detected and used for this project:
 Because robotics simulation suites (`mujoco`, `robosuite`, `robomimic`) are historically developed for Linux, several targeted fixes were engineered to ensure **100% native stability on Windows**:
 
 1. **Python Virtual Environment**:
-   * Isolated Python 3.11 environment in `prod1\venv`.
+   * Isolated Python 3.11 virtual environment (`venv`).
 2. **CPU-Optimized PyTorch**:
    * Installed `torch==2.14.1+cpu` and `torchvision==0.29.1+cpu` via the official PyTorch CPU wheel index (saving 2.5 GB of CUDA download bloat).
 3. **MuJoCo Version Pinning (`mujoco==3.2.7`)**:
@@ -92,18 +90,17 @@ Because robotics simulation suites (`mujoco`, `robosuite`, `robomimic`) are hist
 
 ## 5. Git Practices & Repository Structure
 
-### Git Setup
-* **Remote Repository**: `https://github.com/Digvijay2347/BC-RNN-with-Robosuite-and-Robomimic.git`
-* **Default Branch**: `main`
-* **Author Config**: Digvijay Singh (`90893525+Digvijay2347@users.noreply.github.com`)
-* **Robotics [`.gitignore`](file:///c:/Users/Digvijay%20singh/OneDrive/Desktop/Motion/prod1/.gitignore)**:
-  * Excludes large datasets (`*.hdf5`, `*.h5`, `datasets/`).
-  * Excludes heavy model checkpoints and tensorboard runs (`*.pth`, `*.pt`, `models/`, `runs/`).
-  * Excludes virtual environments (`venv/`, `__pycache__/`).
+### Git Setup & Hygiene
+* **Branching Model**: Standard `main` branch workflow.
+* **Storage Optimization**: All binaries and datasets are excluded to prevent git repository bloat.
+* **Robotics [`.gitignore`](.gitignore)**:
+  * Excludes large demonstration datasets (`*.hdf5`, `*.h5`, `datasets/`).
+  * Excludes model checkpoints and tensorboard event logs (`*.pth`, `*.pt`, `models/`, `runs/`).
+  * Excludes virtual environments and build caches (`venv/`, `__pycache__/`, `*.egg-info/`).
 
 ### Workspace Layout
 ```text
-prod1/
+project-root/
 ├── configs/
 │   ├── config_bc_no_ft.json        # Model A config (MLP, no F/T)
 │   ├── config_bc_with_ft.json      # Model B config (MLP, instant F/T)
@@ -138,80 +135,83 @@ prod1/
 ├── .gitignore
 ├── plan_contact_rich_bc_ft.md      # Initial technical plan
 ├── PROJECT_DOCUMENTATION.md        # Comprehensive project manual (this doc)
-└── README.md                       # Public GitHub overview
+└── README.md                       # Public project overview
 ```
 
 ---
 
 ## 6. Complete Command Reference (Everything Run So Far)
 
-All commands are structured for Windows PowerShell inside `prod1`:
+All commands are executed from the project root:
 
 ### 1. Environment & Setup
-```powershell
+```bash
 # Create virtual environment
 python -m venv venv
 
 # Activate virtual environment
+# On Windows PowerShell:
 .\venv\Scripts\Activate.ps1
+# On Linux / macOS:
+source venv/bin/activate
 
 # Upgrade pip
-.\venv\Scripts\python.exe -m pip install --upgrade pip
+python -m pip install --upgrade pip
 
 # Install CPU-optimized PyTorch
-.\venv\Scripts\python.exe -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
 # Install MuJoCo, Robosuite, Robomimic & data science libraries
-.\venv\Scripts\python.exe -m pip install "mujoco==3.2.7" "robosuite==1.4.1" --no-deps
-.\venv\Scripts\python.exe -m pip install robomimic --no-deps
-.\venv\Scripts\python.exe -m pip install h5py matplotlib seaborn pandas tqdm tensorboard tensorboardX imageio "imageio[ffmpeg]" pynput termcolor numba scipy opencv-python
+python -m pip install "mujoco==3.2.7" "robosuite==1.4.1" --no-deps
+python -m pip install robomimic --no-deps
+python -m pip install h5py matplotlib seaborn pandas tqdm tensorboard tensorboardX imageio "imageio[ffmpeg]" pynput termcolor numba scipy opencv-python
 
 # Run environment sanity check
-.\venv\Scripts\python.exe scripts/sanity_check.py
+python scripts/sanity_check.py
 ```
 
 ### 2. Robot Visualizations
-```powershell
+```bash
 # Launch real-time interactive 3D visualizer (Unlocked Free-Cam mouse orbiting & panning)
-.\venv\Scripts\python.exe scripts/visualize_interactive.py
+python scripts/visualize_interactive.py
 
 # Render high-resolution (512x512) camera snapshots
-.\venv\Scripts\python.exe scripts/render_snapshot.py
+python scripts/render_snapshot.py
 ```
 
 ### 3. Dataset Acquisition & Telemetry Inspection
-```powershell
+```bash
 # Download official Square proficient-human dataset (200 demos)
-.\venv\Scripts\python.exe -m robomimic.scripts.download_datasets --download_dir datasets --tasks square --dataset_types ph --hdf5_types low_dim
+python -m robomimic.scripts.download_datasets --download_dir datasets --tasks square --dataset_types ph --hdf5_types low_dim
 
 # Extract synchronized 6-axis force/torque observations across all 200 demonstrations
-.\venv\Scripts\python.exe -m robomimic.scripts.dataset_states_to_obs --dataset datasets/square/ph/low_dim_v141.hdf5 --output_name low_dim_with_ft.hdf5 --copy_rewards --copy_dones
+python -m robomimic.scripts.dataset_states_to_obs --dataset datasets/square/ph/low_dim_v141.hdf5 --output_name low_dim_with_ft.hdf5 --copy_rewards --copy_dones
 
 # Inspect dataset structure, keys, and statistics
-.\venv\Scripts\python.exe scripts/inspect_dataset.py datasets/square/ph/low_dim_with_ft.hdf5
+python scripts/inspect_dataset.py datasets/square/ph/low_dim_with_ft.hdf5
 
 # Plot 4-panel sensor telemetry for a demonstration (e.g. demo_0)
-.\venv\Scripts\python.exe scripts/plot_demo_telemetry.py demo_0
+python scripts/plot_demo_telemetry.py demo_0
 
 # Replay demonstration in 3D simulator
-.\venv\Scripts\python.exe scripts/playback_demo.py --demo demo_0
+python scripts/playback_demo.py --demo demo_0
 
 # Export demonstration replay to an MP4 video
-.\venv\Scripts\python.exe scripts/playback_demo.py --demo demo_0 --video results/demo_0_playback.mp4
+python scripts/playback_demo.py --demo demo_0 --video results/demo_0_playback.mp4
 ```
 
 ### 4. Configuration Generation & Model Training
-```powershell
+```bash
 # Generate Phase 3 JSON configs for Model A, Model B, and Model C
-.\venv\Scripts\python.exe scripts/generate_configs.py
+python scripts/generate_configs.py
 
 # Train all 3 models sequentially on CPU (50 epochs each)
-.\venv\Scripts\python.exe scripts/train.py --model all --epochs 50
+python scripts/train.py --model all --epochs 50
 
-# Train an individual model if desired
-.\venv\Scripts\python.exe scripts/train.py --model bc_no_ft --epochs 50
-.\venv\Scripts\python.exe scripts/train.py --model bc_with_ft --epochs 50
-.\venv\Scripts\python.exe scripts/train.py --model bc_rnn_with_ft --epochs 50
+# Or train an individual model:
+python scripts/train.py --model bc_no_ft --epochs 50
+python scripts/train.py --model bc_with_ft --epochs 50
+python scripts/train.py --model bc_rnn_with_ft --epochs 50
 ```
 
 ---
@@ -219,7 +219,7 @@ python -m venv venv
 ## 7. Phase-by-Phase Technical Details
 
 ### Phase 1: Environment Setup & Sanity Check
-* **Script**: [`scripts/sanity_check.py`](file:///c:/Users/Digvijay%20singh/OneDrive/Desktop/Motion/prod1/scripts/sanity_check.py)
+* **Script**: [`scripts/sanity_check.py`](scripts/sanity_check.py)
 * **Verification**: Instantiated `NutAssemblySquare` with `Panda` arm. Verified that `robot0_eef_pos` (3), `robot0_eef_quat` (4), `robot0_gripper_qpos` (2), `robot0_eef_force` (3), `robot0_eef_torque` (3), and `object` (14) are active. Stepped 10 simulation actions with active physics telemetry.
 
 ### Phase 2: Dataset Acquisition & F/T Extraction
@@ -229,14 +229,14 @@ python -m venv venv
 * **Physical Findings**: Contact forces remain low ($\sim 5\text{ N}$) during air movement and spike up to **$137.1\text{ N}$** during table contact and peg seating.
 
 ### Phase 3: Configuration Generation
-* **Script**: [`scripts/generate_configs.py`](file:///c:/Users/Digvijay%20singh/OneDrive/Desktop/Motion/prod1/scripts/generate_configs.py)
+* **Script**: [`scripts/generate_configs.py`](scripts/generate_configs.py)
 * Generated three validated robomimic JSON configurations in `configs/`:
   1. `config_bc_no_ft.json`: 23-dim input, MLP `[300, 400]`, $H=1$.
   2. `config_bc_with_ft.json`: 29-dim input, MLP `[300, 400]`, $H=1$.
   3. `config_bc_rnn_with_ft.json`: 29-dim input, 2-layer LSTM (dim: 400) + MLP, $H=10$.
 
 ### Phase 4: CPU-Optimized Training Pipeline
-* **Script**: [`scripts/train.py`](file:///c:/Users/Digvijay%20singh/OneDrive/Desktop/Motion/prod1/scripts/train.py)
+* **Script**: [`scripts/train.py`](scripts/train.py)
 * **Training Time**: Total pipeline completed in **12.4 minutes** on CPU.
 * **Loss Summary Table**:
 
@@ -254,11 +254,11 @@ python -m venv venv
 
 | Category | File | Description |
 | :--- | :--- | :--- |
-| **Loss Curves** | [results/training_curves.png](file:///c:/Users/Digvijay%20singh/OneDrive/Desktop/Motion/prod1/results/training_curves.png) | 2-panel plot comparing Train MSE and Validation MSE across all 50 epochs. |
-| **Loss Telemetry** | [results/training_history.json](file:///c:/Users/Digvijay%20singh/OneDrive/Desktop/Motion/prod1/results/training_history.json) | Complete epoch-by-epoch loss values for all 3 models. |
-| **Sensor Telemetry** | [results/demo_0_telemetry.png](file:///c:/Users/Digvijay%20singh/OneDrive/Desktop/Motion/prod1/results/demo_0_telemetry.png) | 4-panel graph: EEF Position, 3D Force, 3D Torque, and Gripper Width over time. |
-| **Demonstration Video** | [results/demo_0_playback.mp4](file:///c:/Users/Digvijay%20singh/OneDrive/Desktop/Motion/prod1/results/demo_0_playback.mp4) | 512×512 MP4 video of the human demonstration nut insertion. |
-| **Robot Views** | [results/panda_frontview.png](file:///c:/Users/Digvijay%20singh/OneDrive/Desktop/Motion/prod1/results/panda_frontview.png) | High-res camera image of the robot workcell and peg. |
+| **Loss Curves** | [results/training_curves.png](results/training_curves.png) | 2-panel plot comparing Train MSE and Validation MSE across all 50 epochs. |
+| **Loss Telemetry** | [results/training_history.json](results/training_history.json) | Complete epoch-by-epoch loss values for all 3 models. |
+| **Sensor Telemetry** | [results/demo_0_telemetry.png](results/demo_0_telemetry.png) | 4-panel graph: EEF Position, 3D Force, 3D Torque, and Gripper Width over time. |
+| **Demonstration Video** | [results/demo_0_playback.mp4](results/demo_0_playback.mp4) | 512×512 MP4 video of the human demonstration nut insertion. |
+| **Robot Views** | [results/panda_frontview.png](results/panda_frontview.png) | High-res camera image of the robot workcell and peg. |
 | **Trained Checkpoints** | `models/bc_no_ft_best.pth` | Best policy weights for Model A. |
 | | `models/bc_with_ft_best.pth` | Best policy weights for Model B. |
 | | `models/bc_rnn_with_ft_best.pth` | Best policy weights for Model C. |
