@@ -23,7 +23,7 @@ In high-precision manufacturing and industrial robotics, assembly operations suc
 
 To systematically isolate the influence of force sensing and temporal memory, we formulate a 3-way ablation benchmark using the canonical 7-DoF Franka Emika Panda robot on the `NutAssemblySquare` task:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                            ABLATION MATRIX                                  │
 ├───────────────────┬──────────────┬──────────────┬─────────┬─────────────────┤
@@ -134,6 +134,165 @@ To evaluate real-world policy behavior, each model was evaluated across **50 pai
 
 ---
 
+## 🛠️ Complete End-to-End Setup & Reproduction Guide
+
+This guide enables anyone to reproduce the complete project from scratch on any standard machine (Windows, Linux, or macOS).
+
+### 1. Hardware & System Prerequisites
+* **CPU**: Modern multi-core x86_64 or ARM processor (4+ cores recommended).
+* **RAM**: 8 GB RAM or higher (peak usage is lightweight: ~500 MB).
+* **Disk Space**: ~2.5 GB available space (dataset ~55 MB, virtualenv ~1.5 GB, logs & models ~500 MB).
+* **Python**: Python 3.10 or 3.11 installed.
+* **Git**: Installed and available in terminal.
+
+---
+
+### 2. Clone the Repository & Virtual Environment Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/<your-username>/BC-RNN-with-Robosuite-and-Robomimic.git
+cd BC-RNN-with-Robosuite-and-Robomimic
+
+# Create isolated Python virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# Windows PowerShell:
+.\venv\Scripts\Activate.ps1
+# Windows Command Prompt:
+venv\Scripts\activate.bat
+# Linux / macOS:
+source venv/bin/activate
+
+# Upgrade pip
+python -m pip install --upgrade pip
+```
+
+---
+
+### 3. Install Core Dependencies
+
+Install CPU-optimized PyTorch first (saving over 2.5 GB of unused CUDA binaries), followed by pinned simulation libraries:
+
+```bash
+# 1. Install CPU-only PyTorch
+python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# 2. Install pinned MuJoCo and Robosuite
+# NOTE: mujoco==3.2.7 is required to prevent the MjData.qM sparse matrix deprecation in 3.10+
+# NOTE: robosuite==1.4.1 matches the bit-exact state frames used by canonical robomimic datasets
+python -m pip install "mujoco==3.2.7" "robosuite==1.4.1" --no-deps
+
+# 3. Install robomimic without pulling unpinned dependencies
+python -m pip install robomimic --no-deps
+
+# 4. Install scientific computing, visualization, and data libraries
+python -m pip install h5py matplotlib seaborn pandas tqdm tensorboard tensorboardX imageio "imageio[ffmpeg]" pynput termcolor numba scipy opencv-python
+```
+
+---
+
+### 4. Applied Compatibility Patches (Automated or Manual)
+
+Because robotics simulators were traditionally designed for Linux/EGL, several targeted fixes ensure seamless execution on Windows and modern MuJoCo bindings:
+
+#### A. Modern MuJoCo Binding in Robomimic
+In `venv/Lib/site-packages/robomimic/envs/env_robosuite.py`, replace legacy `mujoco_py` references with Google DeepMind's official `mujoco` bindings:
+```python
+import mujoco
+```
+
+#### B. Windows OpenGL Backend Patch
+In `venv/Lib/site-packages/robosuite/utils/binding_utils.py`, set the default OpenGL context to `"wgl"` on Windows instead of Linux `"egl"`:
+```python
+if sys.platform == "win32":
+    os.environ["MUJOCO_GL"] = "wgl"
+```
+
+#### C. Force/Torque Channel Injection
+In `venv/Lib/site-packages/robomimic/envs/env_robosuite.py`, ensure `get_observation()` queries the robot's load cell:
+```python
+di["robot0_eef_force"] = np.array(self.env.robots[0].ee_force)
+di["robot0_eef_torque"] = np.array(self.env.robots[0].ee_torque)
+```
+
+#### D. Offscreen Renderer Protection
+In `venv/Lib/site-packages/robomimic/envs/env_robosuite.py`, safely wrap the optional `egl_probe` check in a `try...except` block so offscreen rendering succeeds on non-EGL platforms.
+
+---
+
+### 5. Step-by-Step Execution Pipeline
+
+Run each command in sequence from the project root:
+
+#### Step 5.1: Verify Simulation Sanity
+Tests environment instantiation, robot kinematics, and verifies that 6-axis F/T telemetry is actively streaming:
+```bash
+python scripts/sanity_check.py
+```
+
+#### Step 5.2: Launch Robot 3D Visualizer & Render Cameras
+Launch the real-time interactive 3D viewer (with mouse orbit/pan/zoom) or render high-resolution 512×512 camera views:
+```bash
+# Real-time free-cam interactive viewer
+python scripts/visualize_interactive.py
+
+# Render camera snapshots (frontview, agentview, sideview) to results/
+python scripts/render_snapshot.py
+```
+
+#### Step 5.3: Download Dataset & Extract Force/Torque Channels
+Download the official 200 human demonstrations (50.5 MB) and re-simulate to extract synchronized wrist forces:
+```bash
+# Download official proficient-human Square dataset
+python -m robomimic.scripts.download_datasets --download_dir datasets --tasks square --dataset_types ph --hdf5_types low_dim
+
+# Re-simulate all 200 trajectories to populate 6-axis F/T channels
+python -m robomimic.scripts.dataset_states_to_obs --dataset datasets/square/ph/low_dim_v141.hdf5 --output_name low_dim_with_ft.hdf5 --copy_rewards --copy_dones
+
+# Verify dataset integrity and sensor keys
+python scripts/inspect_dataset.py datasets/square/ph/low_dim_with_ft.hdf5
+
+# Generate 4-panel sensor telemetry plot for demonstration 0
+python scripts/plot_demo_telemetry.py demo_0
+
+# Replay demonstration in 3D simulator and export MP4 video
+python scripts/playback_demo.py --demo demo_0 --video results/demo_0_playback.mp4
+```
+
+#### Step 5.4: Generate Model Configurations
+Generates validated robomimic experiment JSON files for Model A, Model B, and Model C in `configs/`:
+```bash
+python scripts/generate_configs.py
+```
+
+#### Step 5.5: Train All Three Policies on CPU
+Runs 50 epochs of batch training for each model, logs validation metrics, saves best checkpoints in `models/`, and produces loss curves:
+```bash
+# Train all 3 models sequentially (~12.4 minutes total on CPU)
+python scripts/train.py --model all --epochs 50
+
+# Or train individually:
+# python scripts/train.py --model bc_no_ft --epochs 50
+# python scripts/train.py --model bc_with_ft --epochs 50
+# python scripts/train.py --model bc_rnn_with_ft --epochs 50
+```
+
+#### Step 5.6: Run Closed-Loop Simulation Evaluation
+Executes 50 deterministic evaluation episodes per model (150 total rollouts), logs per-step force profiles and jamming events, records representative MP4 rollout videos, and outputs metrics:
+```bash
+python scripts/evaluate.py --models all --n_episodes 50 --video_episodes 1
+```
+
+#### Step 5.7: Generate Comparative Force Profile Curves
+Plots population mean contact force curves over time across all 50 evaluation seeds:
+```bash
+python scripts/plot_force_profiles.py
+```
+
+---
+
 ## 📂 Project Structure
 
 ```text
@@ -178,29 +337,14 @@ project-root/
 
 ---
 
-## 🚀 Quickstart & Reproduction
+## 🔍 Troubleshooting & Known Gotchas
 
-```bash
-# 1. Activate virtual environment
-# Windows PowerShell:
-.\venv\Scripts\Activate.ps1
-# Linux / macOS:
-source venv/bin/activate
-
-# 2. Run simulation sanity check
-python scripts/sanity_check.py
-
-# 3. Train all 3 models on CPU (50 epochs each)
-python scripts/train.py --model all --epochs 50
-
-# 4. Run closed-loop 50-episode evaluation
-python scripts/evaluate.py --models all --n_episodes 50 --video_episodes 1
-
-# 5. Plot comparative contact force curves
-python scripts/plot_force_profiles.py
-```
-
-For complete technical documentation, Windows WGL/MuJoCo compatibility patches, and complete command history, refer to [`PROJECT_DOCUMENTATION.md`](PROJECT_DOCUMENTATION.md).
+| Issue | Cause | Solution |
+| :--- | :--- | :--- |
+| `AttributeError: 'MjData' object has no attribute 'qM'` | MuJoCo $\ge 3.10$ removed the sparse mass matrix `qM` in favor of CSR `M`. `robosuite` relies on `qM` for OSC controllers. | Pin `mujoco==3.2.7` via `pip install "mujoco==3.2.7"`. |
+| `KeyError: 'gripper0_ft_frame'` during state reload | `robosuite 1.5.x` renamed sensor frames compared to dataset version 1.4.1. | Pin `robosuite==1.4.1` via `pip install "robosuite==1.4.1"`. |
+| `ImportError: DLL load failed` or black window on Windows | Default Linux `MUJOCO_GL="egl"` assignment fails on Windows OpenGL. | Set `os.environ["MUJOCO_GL"] = "wgl"` in `robosuite.utils.binding_utils`. |
+| `ModuleNotFoundError: No module named 'egl_probe'` | Robosuite checks for Linux headless EGL devices. | Wrap import in `try...except (ImportError, Exception): pass`. |
 
 ---
 
