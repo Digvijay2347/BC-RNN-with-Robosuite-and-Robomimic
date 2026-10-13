@@ -26,19 +26,24 @@
 
 ## 1. Project Overview & Scientific Motivation
 
-In tight-tolerance contact-rich assembly tasks (such as peg-in-hole and nut assembly), visual drift and kinematic positioning errors cause rigid parts to jam or wedge. 
+### The Challenge of Contact-Rich Robotic Assembly
+In high-precision robotic assembly tasks, such as **peg-in-hole insertion** and **nut-threading** (`NutAssemblySquare`):
+* **Sub-Millimeter Clearances**: The mechanical tolerance between the square nut and the mating peg is less than 1 millimeter. Minor angular errors ($\approx 1^\circ$) or translational offsets ($\approx 1\text{ mm}$) generate opposing reaction normals, causing **wedging and jamming**.
+* **Failure of Pure Vision & Proprioception**: Visual occlusions prevent overhead/wrist cameras from observing the mating interface at insertion depth. Proprioceptive encoders only report joint angles and end-effector kinematics, giving zero awareness of reaction forces against rigid boundaries.
+* **Compounding Errors in Behavioral Cloning**: Offline imitation learning policies deviate slightly in closed-loop execution. Blind to forces, a position-only policy attempts to push through rigid collisions along its memorized path, exerting extreme destructive forces ($>1,000\text{ N}$).
 
 ### Core Research Questions
-1. **Does tactile/force sensing improve behavioral cloning?** Can the policy utilize wrist force/torque sensor readings to detect contact transitions and compliant insertion?
-2. **Does recurrence (BC-RNN) outperform memoryless policies (BC-MLP)?** Does modeling the temporal sequence of contact forces ($dF/dt$) overcome high-frequency impact noise present in instantaneous single-step readings?
+1. **Can 6-axis wrist Force/Torque (F/T) sensing serve as an implicit contact governor?** Can an imitation learning policy learn compliant behaviors directly from tactile feedback to avoid jamming and lower contact stresses?
+2. **Does temporal recurrence (BC-RNN) overcome the high-frequency noise of raw force readings?** Raw force sensors produce noisy, instantaneous spikes upon initial impact. Can an LSTM policy over a temporal horizon ($H=10$) learn force derivatives ($dF/dt$) to differentiate gentle sliding from hard collisions?
+3. **How do memoryless policies (BC-MLP) compare to sequence models (BC-RNN) in closed-loop physical interaction?**
 
-### Experimental Conditions (Ablation Matrix)
+### Detailed Breakdown of the Three Strategies
 
-| Condition | Architecture | Input Observations | Sequence Horizon | Core Hypothesis |
+| Strategy | Architecture | Input Observations | Horizon | Role & Theoretical Mechanism |
 | :--- | :--- | :--- | :---: | :--- |
-| **Model A (Baseline)** | Standard BC (MLP) | EE Pos + Quat + Gripper + Object (23 dims) | $H=1$ (1 step) | Position-only baseline; vulnerable to contact jamming. |
-| **Model B (Instant F/T)** | Standard BC (MLP) | EE Pos + Quat + Gripper + Object + **F/T** (29 dims) | $H=1$ (1 step) | Can react to contact thresholds, but sensitive to raw impact noise. |
-| **Model C (F/T History)** | **BC-RNN (LSTM)** | EE Pos + Quat + Gripper + Object + **F/T** (29 dims) | **$H=10$ (Sequence)** | Learns force rate-of-change ($dF/dt$) and achieves lowest loss. |
+| **Model A (Baseline)** | Standard BC (MLP) | EE Pos + Quat + Gripper + Object (23 dims) | $H=1$ (1 step) | **Negative Control**: Operates in pure kinematic space. Blind to contact, it drives motors downward despite mechanical resistance, generating high destructive forces. |
+| **Model B (Instant F/T)** | Standard BC (MLP) | EE Pos + Quat + Gripper + Object + **F/T** (29 dims) | $H=1$ (1 step) | **Tactile Aware**: Receives real-time $F$ and $\tau$, learning an implicit impedance law that throttles downward thrust upon contact. However, lacking history ($H=1$), it cannot estimate force derivatives ($dF/dt$). |
+| **Model C (F/T History)** | **BC-RNN (LSTM)** | EE Pos + Quat + Gripper + Object + **F/T** (29 dims) | **$H=10$ (Sequence)** | **Temporal Tactile**: 2-layer LSTM ($H=10$) filters sensor noise and estimates force rate-of-change ($dF/dt$). In closed-loop rollouts, persistent contact history can cause recurrent locking without recovery exploration data. |
 
 ---
 
