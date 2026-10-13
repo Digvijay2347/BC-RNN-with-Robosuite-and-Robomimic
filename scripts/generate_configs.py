@@ -21,7 +21,7 @@ def build_base_config(exp_name, output_dir, dataset_path="datasets/square/ph/low
     # Experiment settings
     config.experiment.name = exp_name
     config.experiment.validate = True
-    config.experiment.logging.terminal_output_to_txt = True
+    config.experiment.logging.terminal_output_to_txt = False
     config.experiment.logging.log_tb = True
     config.experiment.save.enabled = True
     config.experiment.save.every_n_epochs = 10

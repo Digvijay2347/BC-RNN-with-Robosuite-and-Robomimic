@@ -1,0 +1,23 @@
+[
+    {
+        "model_key": "bc_no_ft",
+        "name": "Model A: BC (No F/T)",
+        "checkpoint": "models\\bc_no_ft_best.pth",
+        "elapsed_sec": 47.099881172180176,
+        "latest_run": "C:\\Users\\Digvijay singh\\OneDrive\\Desktop\\Motion\\prod1\\models\\bc_no_ft\\bc_no_ft\\20261013233850"
+    },
+    {
+        "model_key": "bc_with_ft",
+        "name": "Model B: BC (With F/T)",
+        "checkpoint": "models\\bc_with_ft_best.pth",
+        "elapsed_sec": 45.92094016075134,
+        "latest_run": "C:\\Users\\Digvijay singh\\OneDrive\\Desktop\\Motion\\prod1\\models\\bc_with_ft\\bc_with_ft\\20261013233938"
+    },
+    {
+        "model_key": "bc_rnn_with_ft",
+        "name": "Model C: BC-RNN (F/T History)",
+        "checkpoint": "models\\bc_rnn_with_ft_best.pth",
+        "elapsed_sec": 650.9679498672485,
+        "latest_run": "C:\\Users\\Digvijay singh\\OneDrive\\Desktop\\Motion\\prod1\\models\\bc_rnn_with_ft\\bc_rnn_with_ft\\20261013234023"
+    }
+]
